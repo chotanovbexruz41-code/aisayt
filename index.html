@@ -1,1412 +1,725 @@
+
 <!DOCTYPE html>
-<html lang="uz" data-theme="light">
+<html lang="uz">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://api.groq.com https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com https://openrouter.ai; img-src 'self' data:;">
-<title>Bobo — 1-6 sinf AI repetitor</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-<style>
-:root {
-  --bg: #F7F0E8;
-  --card: #FFFDF9;
-  --tx: #2A2118;
-  --mu: #7A6B5C;
-  --pr: #C45C26;
-  --pr-hover: #A84B1E;
-  --bd: #EAD9C8;
-  --ok: #2E7D32;
-  --er: #C62828;
-  --sidebar: #F3EBE1;
-  --shadow: 0 4px 24px rgba(92, 64, 51, 0.07);
-  --radius: 18px;
-}
-[data-theme="dark"] {
-  --bg: #1A1612;
-  --card: #26201B;
-  --tx: #F5EDE4;
-  --mu: #A89A8C;
-  --bd: #3D342C;
-  --sidebar: #211C17;
-  --shadow: 0 4px 24px rgba(0,0,0,0.35);
-}
-* { box-sizing: border-box; margin: 0; padding: 0; }
-html, body {
-  background: var(--bg);
-  color: var(--tx);
-  font: 16px/1.55 'Inter', system-ui, -apple-system, sans-serif;
-  min-height: 100vh;
-  transition: background .25s, color .25s;
-}
-h1, h2, h3 {
-  font-family: 'Playfair Display', Georgia, serif;
-  font-weight: 700;
-}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#fff8ef">
+  <title>Bobo — AI o‘qituvchi</title>
 
-/* ===== LAYOUT ===== */
-.app {
-  display: flex;
-  min-height: 100vh;
-}
-.sidebar {
-  width: 260px;
-  background: var(--sidebar);
-  border-right: 1px solid var(--bd);
-  display: flex;
-  flex-direction: column;
-  position: fixed;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  z-index: 100;
-  transition: transform .3s ease;
-  padding: 16px 12px;
-}
-.sidebar.closed {
-  transform: translateX(-100%);
-}
-.main {
-  flex: 1;
-  margin-left: 260px;
-  transition: margin-left .3s ease;
-  min-height: 100vh;
-}
-.main.full {
-  margin-left: 0;
-}
+  <style>
+    :root {
+      --bg: #fffaf4;
+      --panel: #ffffff;
+      --text: #342015;
+      --muted: #817267;
+      --orange: #c65320;
+      --border: #eadfd4;
+      --soft: #fff0df;
+    }
 
-/* Sidebar top */
-.sb-logo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 10px 16px;
-  margin-bottom: 8px;
-}
-.sb-logo-icon {
-  width: 36px;
-  height: 36px;
-  background: var(--pr);
-  border-radius: 11px;
-  display: grid;
-  place-items: center;
-  font-size: 1.2rem;
-  color: #fff;
-}
-.sb-logo b {
-  font-family: 'Playfair Display', serif;
-  font-size: 1.25rem;
-  color: var(--pr);
-}
+    * {
+      box-sizing: border-box;
+    }
 
-/* Nav items */
-.sb-nav {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  margin-bottom: 20px;
-}
-.sb-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
-  border-radius: 12px;
-  cursor: pointer;
-  font-size: .95rem;
-  font-weight: 500;
-  color: var(--tx);
-  transition: all .15s;
-  border: none;
-  background: none;
-  width: 100%;
-  text-align: left;
-}
-.sb-item:hover {
-  background: color-mix(in srgb, var(--pr) 10%, transparent);
-}
-.sb-item.active {
-  background: color-mix(in srgb, var(--pr) 16%, transparent);
-  color: var(--pr);
-  font-weight: 600;
-}
-.sb-item .icon {
-  width: 22px;
-  text-align: center;
-  font-size: 1.1rem;
-}
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Arial, sans-serif;
+    }
 
-/* Section title */
-.sb-section {
-  font-size: .75rem;
-  font-weight: 600;
-  color: var(--mu);
-  text-transform: uppercase;
-  letter-spacing: .04em;
-  padding: 8px 12px 6px;
-  margin-top: 8px;
-}
+    button, input, textarea {
+      font: inherit;
+    }
 
-/* Chats list */
-.sb-chats {
-  flex: 1;
-  overflow-y: auto;
-  margin-bottom: 12px;
-}
-.sb-chat {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 12px;
-  border-radius: 11px;
-  cursor: pointer;
-  font-size: .9rem;
-  color: var(--tx);
-  transition: background .15s;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.sb-chat:hover {
-  background: color-mix(in srgb, var(--pr) 8%, transparent);
-}
-.sb-chat.active {
-  background: color-mix(in srgb, var(--pr) 14%, transparent);
-  color: var(--pr);
-}
+    button {
+      cursor: pointer;
+    }
 
-/* Bottom user */
-.sb-bottom {
-  border-top: 1px solid var(--bd);
-  padding-top: 12px;
-  margin-top: auto;
-}
-.sb-user {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: background .15s;
-}
-.sb-user:hover {
-  background: color-mix(in srgb, var(--pr) 8%, transparent);
-}
-.sb-avatar {
-  width: 34px;
-  height: 34px;
-  background: var(--pr);
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  color: #fff;
-  font-weight: 700;
-  font-size: .95rem;
-}
-.sb-user-info {
-  flex: 1;
-  min-width: 0;
-}
-.sb-user-info b {
-  display: block;
-  font-size: .9rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.sb-user-info span {
-  font-size: .78rem;
-  color: var(--mu);
-}
+    .layout {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 230px minmax(0, 1fr);
+    }
 
-/* Toggle button (mobile + desktop) */
-.menu-btn {
-  position: fixed;
-  top: 14px;
-  left: 14px;
-  z-index: 110;
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  border: 1px solid var(--bd);
-  background: var(--card);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-size: 1.2rem;
-  box-shadow: var(--shadow);
-}
+    aside {
+      background: #f8eee1;
+      border-right: 1px solid var(--border);
+      padding: 22px 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
 
-/* Content area */
-.content {
-  max-width: 640px;
-  margin: 0 auto;
-  padding: 20px 18px 60px;
-}
+    .logo {
+      color: #8f3d16;
+      font-size: 35px;
+      font-weight: 900;
+      margin: 4px 8px 0;
+    }
 
-/* Header inside content */
-.top {
-  margin-bottom: 18px;
-}
-.logo-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 14px;
-}
-.header-actions {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  margin-left: auto;
-}
-.btn {
-  background: var(--pr);
-  color: #fff;
-  border: 0;
-  border-radius: 12px;
-  padding: 9px 16px;
-  cursor: pointer;
-  font-weight: 600;
-  font-size: .92rem;
-  transition: background .2s, transform .15s;
-}
-.btn:hover { background: var(--pr-hover); transform: translateY(-1px); }
-.btn.s {
-  background: transparent;
-  color: var(--pr);
-  border: 1.5px solid var(--pr);
-}
-.btn.s:hover { background: var(--pr); color: #fff; }
-.btn.sm { padding: 6px 11px; font-size: .84rem; border-radius: 10px; }
-.card {
-  background: var(--card);
-  border: 1px solid var(--bd);
-  border-radius: var(--radius);
-  padding: 18px;
-  margin-bottom: 14px;
-  box-shadow: var(--shadow);
-}
-.ch {
-  display: inline-block;
-  border: 1.5px solid var(--bd);
-  background: var(--card);
-  border-radius: 999px;
-  padding: 5px 13px;
-  margin: 3px 4px 3px 0;
-  cursor: pointer;
-  font-size: .88rem;
-  transition: all .18s;
-}
-.ch:hover { border-color: var(--pr); color: var(--pr); }
-.ch.on {
-  background: var(--pr);
-  color: #fff;
-  border-color: var(--pr);
-}
-.scroll {
-  white-space: nowrap;
-  overflow-x: auto;
-  padding-bottom: 6px;
-  scrollbar-width: none;
-}
-.scroll::-webkit-scrollbar { display: none; }
-input, select {
-  width: 100%;
-  padding: 11px 14px;
-  border: 1.5px solid var(--bd);
-  border-radius: 12px;
-  background: var(--card);
-  color: var(--tx);
-  font: inherit;
-  margin: 4px 0;
-  transition: border-color .2s;
-}
-input:focus, select:focus {
-  outline: none;
-  border-color: var(--pr);
-}
-.row { display: flex; gap: 8px; align-items: center; }
-.row input { margin: 0; }
-.gg { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.gg .btn { padding: 13px 8px; font-size: .93rem; }
-.opt {
-  display: block;
-  width: 100%;
-  text-align: left;
-  background: var(--card);
-  border: 1.5px solid var(--bd);
-  border-radius: 14px;
-  padding: 12px 14px;
-  margin: 7px 0;
-  cursor: pointer;
-  transition: all .18s;
-  font-size: .95rem;
-}
-.opt:hover { border-color: var(--pr); }
-.opt.ok { border-color: var(--ok); background: color-mix(in srgb, var(--ok) 15%, transparent); }
-.opt.no { border-color: var(--er); background: color-mix(in srgb, var(--er) 15%, transparent); }
-.opt.sel { border-color: var(--pr); background: color-mix(in srgb, var(--pr) 10%, transparent); }
-.big { font-size: 2.8rem; text-align: center; }
-.pop { animation: pop .4s; }
-@keyframes pop { 50% { transform: scale(1.18); } }
-.mem { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-.mem button {
-  height: 70px;
-  border-radius: 14px;
-  border: 1.5px solid var(--bd);
-  background: var(--pr);
-  color: #fff;
-  font-size: .88rem;
-  cursor: pointer;
-}
-.mem button.up { background: var(--card); color: var(--tx); }
-.mem button.done { background: color-mix(in srgb, var(--ok) 22%, var(--card)); color: var(--tx); }
-.two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.mu { color: var(--mu); font-size: .86rem; }
+    .subtitle {
+      color: var(--muted);
+      margin: -8px 8px 20px;
+      font-size: 13px;
+    }
 
-/* MODAL */
-.overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(42, 33, 24, 0.5);
-  backdrop-filter: blur(8px);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 16px;
-}
-.overlay.active { display: flex; }
-.modal {
-  background: var(--card);
-  border-radius: 22px;
-  width: 100%;
-  max-width: 420px;
-  padding: 28px 24px;
-  box-shadow: 0 20px 50px rgba(0,0,0,0.2);
-  position: relative;
-  animation: up .3s ease;
-  border: 1px solid var(--bd);
-  max-height: 90vh;
-  overflow-y: auto;
-}
-@keyframes up {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.modal h2 {
-  font-size: 1.55rem;
-  margin-bottom: 4px;
-  color: var(--pr);
-}
-.modal > p {
-  color: var(--mu);
-  margin-bottom: 18px;
-  font-size: .92rem;
-}
-.form-group { margin-bottom: 14px; }
-label {
-  display: block;
-  font-size: .88rem;
-  font-weight: 500;
-  margin-bottom: 5px;
-  color: var(--tx);
-}
-.strength {
-  height: 4px;
-  background: var(--bd);
-  border-radius: 2px;
-  margin-top: 6px;
-  overflow: hidden;
-}
-.strength-bar { height: 100%; width: 0; transition: .3s; border-radius: 2px; }
-.strength-text { font-size: .8rem; color: var(--mu); margin-top: 4px; }
-.error {
-  color: var(--er);
-  font-size: .84rem;
-  margin-top: 5px;
-  display: none;
-}
-.close-btn {
-  position: absolute;
-  top: 14px;
-  right: 16px;
-  background: none;
-  border: none;
-  font-size: 1.4rem;
-  cursor: pointer;
-  color: var(--mu);
-  line-height: 1;
-}
-.tabs {
-  display: flex;
-  gap: 6px;
-  margin-bottom: 18px;
-  background: var(--bg);
-  padding: 4px;
-  border-radius: 12px;
-}
-.tab {
-  flex: 1;
-  text-align: center;
-  padding: 9px;
-  border-radius: 9px;
-  cursor: pointer;
-  font-weight: 600;
-  font-size: .9rem;
-  transition: all .2s;
-  color: var(--mu);
-}
-.tab.on {
-  background: var(--card);
-  color: var(--pr);
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-}
-.submit-btn {
-  width: 100%;
-  padding: 12px;
-  background: var(--pr);
-  color: #fff;
-  border: none;
-  border-radius: 12px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  margin-top: 6px;
-  transition: background .2s;
-}
-.submit-btn:hover { background: var(--pr-hover); }
-.user-badge {
-  background: color-mix(in srgb, var(--pr) 14%, transparent);
-  color: var(--pr);
-  padding: 4px 11px;
-  border-radius: 999px;
-  font-size: .82rem;
-  font-weight: 600;
-}
-.ai-status {
-  font-size: .8rem;
-  padding: 3px 8px;
-  border-radius: 999px;
-  font-weight: 600;
-}
-.ai-status.ok { background: color-mix(in srgb, var(--ok) 18%, transparent); color: var(--ok); }
-.ai-status.no { background: color-mix(in srgb, var(--er) 15%, transparent); color: var(--er); }
-.hint {
-  font-size: .82rem;
-  color: var(--mu);
-  margin-top: 6px;
-  line-height: 1.4;
-}
-.hint a { color: var(--pr); }
-#confetti {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 2000;
-}
-.security-note {
-  font-size: .75rem;
-  color: var(--mu);
-  background: color-mix(in srgb, var(--er) 8%, transparent);
-  border: 1px solid color-mix(in srgb, var(--er) 25%, transparent);
-  padding: 8px 12px;
-  border-radius: 10px;
-  margin-top: 12px;
-  line-height: 1.4;
-}
+    .nav {
+      width: 100%;
+      border: 0;
+      padding: 13px;
+      border-radius: 12px;
+      background: transparent;
+      text-align: left;
+      color: var(--text);
+    }
 
-/* Mobile */
-@media (max-width: 768px) {
-  .sidebar {
-    transform: translateX(-100%);
-  }
-  .sidebar.open {
-    transform: translateX(0);
-  }
-  .main {
-    margin-left: 0;
-  }
-  .menu-btn {
-    display: flex;
-  }
-  .content {
-    padding-top: 60px;
-  }
-}
-</style>
+    .nav.active, .nav:hover {
+      background: var(--orange);
+      color: white;
+    }
+
+    .profile {
+      margin-top: auto;
+      border-top: 1px solid var(--border);
+      padding: 18px 6px 0;
+      font-size: 14px;
+    }
+
+    main {
+      min-width: 0;
+      padding: 24px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    header h2 {
+      margin: 0;
+      font-size: 22px;
+    }
+
+    .status {
+      padding: 9px 13px;
+      border-radius: 20px;
+      background: #f5eee6;
+      font-size: 13px;
+    }
+
+    .status.ok {
+      background: #e0f5e6;
+      color: #176c36;
+    }
+
+    .hero {
+      padding: 28px;
+      border-radius: 22px;
+      background: linear-gradient(120deg, #fff0d9, #ffe1bd);
+      margin-bottom: 26px;
+    }
+
+    .hero h1 {
+      font-size: clamp(25px, 4vw, 38px);
+      margin: 0 0 12px;
+    }
+
+    .hero p {
+      line-height: 1.7;
+      margin: 0;
+    }
+
+    section {
+      margin-bottom: 28px;
+    }
+
+    section h2 {
+      margin: 0 0 7px;
+      font-size: 25px;
+    }
+
+    .muted {
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 15px;
+    }
+
+    .subject {
+      text-align: left;
+      padding: 17px;
+      border: 1px solid transparent;
+      border-radius: 16px;
+      min-height: 125px;
+      color: #332015;
+      background: #e0edff;
+    }
+
+    .subject:nth-child(2) { background: #e2f7df; }
+    .subject:nth-child(3) { background: #eee3ff; }
+    .subject:nth-child(4) { background: #fff0d0; }
+    .subject:nth-child(5) { background: #ffe2e2; }
+    .subject:nth-child(6) { background: #d9f2f0; }
+
+    .subject:hover {
+      border-color: var(--orange);
+      transform: translateY(-2px);
+    }
+
+    .subject .emoji {
+      display: block;
+      font-size: 28px;
+      margin-bottom: 12px;
+    }
+
+    .subject strong {
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .subject small {
+      line-height: 1.4;
+    }
+
+    .grades {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 14px 0;
+    }
+
+    .pill {
+      border: 1px solid var(--border);
+      border-radius: 30px;
+      padding: 9px 14px;
+      background: white;
+      color: var(--text);
+    }
+
+    .pill.selected {
+      background: var(--orange);
+      color: white;
+      border-color: var(--orange);
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 330px;
+      gap: 20px;
+      align-items: start;
+    }
+
+    .chat {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      overflow: hidden;
+      position: sticky;
+      top: 16px;
+      display: flex;
+      flex-direction: column;
+      height: min(690px, calc(100vh - 32px));
+      min-height: 430px;
+    }
+
+    .chat-head {
+      padding: 18px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .chat-head strong {
+      display: block;
+      font-size: 18px;
+    }
+
+    .messages {
+      padding: 16px;
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .bubble {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      max-width: 95%;
+      padding: 12px 14px;
+      border-radius: 15px;
+      background: #f7eee6;
+      line-height: 1.55;
+      font-size: 14px;
+    }
+
+    .bubble.user {
+      align-self: flex-end;
+      background: #ffead7;
+    }
+
+    .bubble.error {
+      background: #ffeded;
+      color: #a22222;
+    }
+
+    .suggestions {
+      padding: 0 14px 12px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+
+    .suggestions button {
+      border: 1px solid var(--border);
+      background: #fffaf5;
+      color: var(--text);
+      border-radius: 20px;
+      padding: 8px 10px;
+      font-size: 12px;
+    }
+
+    .composer {
+      padding: 12px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 8px;
+    }
+
+    .composer textarea {
+      flex: 1;
+      min-width: 0;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      resize: vertical;
+      min-height: 45px;
+      max-height: 120px;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .send {
+      border: 0;
+      border-radius: 12px;
+      background: var(--orange);
+      color: white;
+      padding: 0 15px;
+      font-weight: bold;
+    }
+
+    .send:disabled {
+      opacity: .6;
+      cursor: wait;
+    }
+
+    .notice {
+      font-size: 12px;
+      color: var(--muted);
+      padding: 0 14px 12px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    body.dark {
+      --bg: #201a17;
+      --panel: #2a221e;
+      --text: #fff2e8;
+      --muted: #c2aea0;
+      --border: #493a32;
+      --soft: #3b2b23;
+    }
+
+    body.dark aside {
+      background: #29201b;
+    }
+
+    body.dark .hero {
+      background: linear-gradient(120deg, #493024, #39251b);
+    }
+
+    body.dark .subject {
+      color: #291d16;
+    }
+
+    body.dark .bubble,
+    body.dark .suggestions button,
+    body.dark .pill {
+      color: var(--text);
+      background: #392e28;
+      border-color: var(--border);
+    }
+
+    body.dark .bubble.user {
+      background: #543622;
+    }
+
+    body.dark .composer textarea {
+      color: var(--text);
+    }
+
+    @media (max-width: 1000px) {
+      .layout {
+        grid-template-columns: 180px minmax(0, 1fr);
+      }
+
+      .workspace {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .chat {
+        position: static;
+        height: 550px;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      aside {
+        padding: 12px;
+      }
+
+      .logo {
+        font-size: 28px;
+      }
+
+      aside .nav {
+        display: inline-block;
+        width: auto;
+        padding: 9px;
+      }
+
+      .profile {
+        display: none;
+      }
+
+      main {
+        padding: 14px;
+      }
+
+      .hero {
+        padding: 20px;
+      }
+
+      .grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .chat {
+        height: 500px;
+      }
+    }
+  </style>
 </head>
+
 <body>
-<canvas id="confetti"></canvas>
+  <div class="layout">
+    <aside>
+      <div class="logo">🧑🏻‍🏫 Bobo</div>
+      <div class="subtitle">1–6-sinf AI o‘qituvchi</div>
 
-<button class="menu-btn" id="menuBtn" onclick="toggleSidebar()">☰</button>
+      <button class="nav active" data-page="Bosh sahifa">🏠 Bosh sahifa</button>
+      <button class="nav" data-page="Fanlar">📚 Fanlar</button>
+      <button class="nav" data-page="Topshiriqlar">📝 Topshiriqlar</button>
+      <button class="nav" data-page="O‘yinlar">🎮 O‘yinlar</button>
+      <button class="nav" data-page="Statistika">📊 Statistika</button>
+      <button class="nav" id="settingsBtn">⚙️ Sozlamalar</button>
 
-<div class="app">
-  <!-- ===== SIDEBAR ===== -->
-  <aside class="sidebar" id="sidebar">
-    <div class="sb-logo">
-      <div class="sb-logo-icon">🦉</div>
-      <b>Bobo</b>
-    </div>
-
-    <nav class="sb-nav">
-      <button class="sb-item active" onclick="setPage('home')">
-        <span class="icon">🏠</span> Bosh sahifa
-      </button>
-      <button class="sb-item" onclick="setPage('chat')">
-        <span class="icon">💬</span> Suhbat
-      </button>
-      <button class="sb-item" onclick="setPage('games')">
-        <span class="icon">🎮</span> O‘yinlar
-      </button>
-      <button class="sb-item" onclick="openAISettings()">
-        <span class="icon">⚙️</span> AI sozlamalari
-      </button>
-      <button class="sb-item" onclick="toggleTheme()">
-        <span class="icon" id="themeIcon">🌙</span> Mavzu
-      </button>
-    </nav>
-
-    <div class="sb-section">So‘nggi suhbatlar</div>
-    <div class="sb-chats" id="chatHistory">
-      <!-- dynamically filled -->
-    </div>
-
-    <div class="sb-bottom">
-      <div class="sb-user" onclick="openAuth()">
-        <div class="sb-avatar" id="sbAvatar">?</div>
-        <div class="sb-user-info">
-          <b id="sbName">Mehmon</b>
-          <span id="sbEmail">Kirish / Ro‘yxat</span>
-        </div>
+      <div class="profile">
+        <strong>🟠 O‘quvchi</strong>
+        <p class="muted">Birga o‘rganamiz!</p>
       </div>
-    </div>
-  </aside>
+    </aside>
 
-  <!-- ===== MAIN ===== -->
-  <div class="main" id="main">
-    <div class="content">
-      <!-- HEADER -->
-      <div class="top">
-        <div class="logo-row">
-          <div style="flex:1">
-            <h2 style="font-size:1.4rem; color:var(--pr); margin:0">Bobo</h2>
-            <div class="mu">1–6 sinf AI o‘qituvchi</div>
+    <main>
+      <header>
+        <h2 id="pageTitle">Bosh sahifa</h2>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span id="aiStatus" class="status">AI tekshirilmoqda…</span>
+          <button class="pill" id="themeBtn" aria-label="Mavzuni almashtirish">🌙</button>
+        </div>
+      </header>
+
+      <div class="workspace">
+        <div>
+          <div class="hero">
+            <h1>Salom! 👋</h1>
+            <p>Men Bobo — 1–6-sinf o‘quvchilari uchun AI o‘qituvchiman.</p>
+            <p>Savol ber, yangi mavzularni birga o‘rganamiz!</p>
           </div>
-          <div class="header-actions">
-            <span id="aiStatus" class="ai-status no">AI yo‘q</span>
-            <b id="st">⭐ 0</b>
+
+          <section id="subjectsSection">
+            <h2>Fanlar</h2>
+            <p class="muted">Kerakli fanni tanlang va o‘rganishni boshlang.</p>
+
+            <div class="grades" id="grades">
+              <button class="pill selected" data-grade="1">1-sinf</button>
+              <button class="pill" data-grade="2">2-sinf</button>
+              <button class="pill" data-grade="3">3-sinf</button>
+              <button class="pill" data-grade="4">4-sinf</button>
+              <button class="pill" data-grade="5">5-sinf</button>
+              <button class="pill" data-grade="6">6-sinf</button>
+            </div>
+
+            <div class="grid">
+              <button class="subject" data-subject="Matematika">
+                <span class="emoji">🔢</span>
+                <strong>Matematika</strong>
+                <small>Hisoblash va masalalar</small>
+              </button>
+              <button class="subject" data-subject="Ona tili">
+                <span class="emoji">📗</span>
+                <strong>Ona tili</strong>
+                <small>Grammatika va matnlar</small>
+              </button>
+              <button class="subject" data-subject="Ingliz tili">
+                <span class="emoji">🇬🇧</span>
+                <strong>Ingliz tili</strong>
+                <small>So‘zlar va tarjimalar</small>
+              </button>
+              <button class="subject" data-subject="Tabiat fani">
+                <span class="emoji">🌱</span>
+                <strong>Tabiat fani</strong>
+                <small>Tabiat va hayvonlar</small>
+              </button>
+              <button class="subject" data-subject="Tarix">
+                <span class="emoji">🏛️</span>
+                <strong>Tarix</strong>
+                <small>O‘tmishdan saboqlar</small>
+              </button>
+              <button class="subject" data-subject="Geografiya">
+                <span class="emoji">🌍</span>
+                <strong>Geografiya</strong>
+                <small>Dunyo xaritasi</small>
+              </button>
+            </div>
+          </section>
+
+          <section>
+            <h2>O‘yinlar va mashqlar</h2>
+            <p class="muted">Bilimingni mustahkamla va qiziqarli savollar bilan o‘rgan!</p>
+            <div class="grid">
+              <button class="subject" data-prompt="Menga yoshimga mos 5 ta mantiqiy topishmoq ber. Javoblarni bittadan so‘ra.">
+                <span class="emoji">🧠</span>
+                <strong>Miya mashqlari</strong>
+                <small>Mantiq va fikrlash</small>
+              </button>
+              <button class="subject" data-prompt="Menga tanlagan sinfimga mos 5 ta test savoli tuz. Har safar bittadan so‘ra va javobimni tekshir.">
+                <span class="emoji">🧩</span>
+                <strong>Testlar</strong>
+                <small>Bilimingni sinab ko‘r</small>
+              </button>
+              <button class="subject" data-prompt="Menga qiziqarli yangi bilimlar va hayratlanarli faktlarni sodda qilib tushuntir.">
+                <span class="emoji">⭐</span>
+                <strong>Qiziqarli savollar</strong>
+                <small>Yangi bilimlar</small>
+              </button>
+            </div>
+          </section>
+        </div>
+
+        <section class="chat">
+          <div class="chat-head">
+            <strong>🤖 Bobo AI</strong>
+            <span class="muted" style="font-size:13px">Savol ber yoki mavzu tanla</span>
           </div>
-        </div>
 
-        <div class="row" style="margin-bottom:8px; flex-wrap:wrap; gap:6px">
-          <select id="vs" style="flex:2; min-width:110px" onchange="S.vn=this.value;sv();speak('Salom, men Bobo.')"></select>
-          <select id="rt" style="flex:1" onchange="S.rt=+this.value;sv()">
-            <option value="0.55">🐌 Juda sekin</option>
-            <option value="0.7">🐢 Sekin</option>
-            <option value="0.85" selected>🙂 Oddiy</option>
-            <option value="1">🐇 Tez</option>
-            <option value="1.15">🚀 Juda tez</option>
-          </select>
-          <select id="ch" style="flex:1" onchange="S.ch=this.value;sv();speak('Salom!')">
-            <option value="human">🧑 Tabiiy</option>
-            <option value="bobo">🦉 Bobo</option>
-            <option value="fun">🎉 Quvnoq</option>
-            <option value="story">🧙 Ertakchi</option>
-            <option value="mouse">🐭 Sichqoncha</option>
-            <option value="robot">🤖 Robot</option>
-          </select>
-          <button class="btn s sm" id="sn" onclick="S.snd=!S.snd;if(!S.snd)speechSynthesis.cancel();sv();hdr()">🔊</button>
-        </div>
-        <div id="vn" class="mu" style="margin-bottom:6px; font-size:.82rem"></div>
-        <div class="scroll" id="gr"></div>
-        <div class="scroll" id="sj"></div>
+          <div class="messages" id="messages" aria-live="polite">
+            <div class="bubble">
+              Salom! Men Bobo! 😊
+              Nima haqida gaplashamiz?
+              Savolingni yoz yoki mavzu tanla.
+            </div>
+          </div>
+
+          <div class="suggestions">
+            <button data-prompt="Menga oddiy matematik masala ber.">Matematika masalasi</button>
+            <button data-prompt="Ona tilidagi ot va fe'lni sodda qilib tushuntir.">Ona tili</button>
+            <button data-prompt="Menga ingliz tilida 5 ta yangi so‘z o‘rgat.">Ingliz tili</button>
+          </div>
+
+          <form class="composer" id="chatForm">
+            <textarea id="messageInput" placeholder="Savolingizni yozing..." rows="2" required></textarea>
+            <button class="send" id="sendBtn" type="submit">➤</button>
+          </form>
+
+          <div class="notice" id="notice">
+            AI javoblari xato bo‘lishi mumkin. Muhim ma’lumotlarni tekshiring.
+          </div>
+        </section>
       </div>
-
-      <!-- TOPIC -->
-      <div class="card">
-        <div class="row">
-          <input id="tp" placeholder="📚 Mavzuni yoz yoki tanla…" maxlength="120">
-          <button class="btn" onclick="pickTopic(document.getElementById('tp').value)">Tanla</button>
-        </div>
-        <button class="btn s" style="width:100%; margin-top:10px" onclick="topics()">✨ Bobo mavzu tavsiya qilsin</button>
-        <div id="tc" style="margin-top:10px"></div>
-      </div>
-
-      <div id="body"></div>
-    </div>
+    </main>
   </div>
-</div>
 
-<!-- AI SETTINGS MODAL -->
-<div class="overlay" id="aiOverlay">
-  <div class="modal">
-    <button class="close-btn" onclick="closeAISettings()">×</button>
-    <h2>⚙️ AI sozlamalari</h2>
-    <p>AI ishlashi uchun API kalit kerak</p>
-    <div class="security-note">
-      ⚠️ <b>Xavfsizlik ogohlantirishi:</b> API kalit brauzerda saqlanadi va tarmoqda ko‘rinadi. Faqat o‘zingiz uchun ishlating. Real loyihada backend orqali yuboring.
-    </div>
-    <div class="form-group">
-      <label>Provayder</label>
-      <select id="aiProvider" onchange="updateProviderHint()">
-        <option value="groq">Groq (bepul + tez)</option>
-        <option value="openai">OpenAI</option>
-        <option value="anthropic">Anthropic (Claude)</option>
-        <option value="gemini">Google Gemini</option>
-        <option value="openrouter">OpenRouter</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label>API kalit</label>
-      <input type="password" id="aiKey" placeholder="sk-... yoki gsk_..." autocomplete="off">
-      <div class="hint" id="providerHint">Groq bepul: <a href="https://console.groq.com/keys" target="_blank" rel="noopener">console.groq.com</a></div>
-    </div>
-    <div class="form-group">
-      <label>Model (ixtiyoriy)</label>
-      <input type="text" id="aiModel" placeholder="Bo‘sh = avtomatik" maxlength="80">
-    </div>
-    <button class="submit-btn" onclick="saveAISettings()">Saqlash</button>
-    <button class="btn s" style="width:100%; margin-top:8px" onclick="testAI()">🧪 AI ni sinab ko‘rish</button>
-    <div id="aiTestResult" class="mu" style="margin-top:12px; text-align:center"></div>
-  </div>
-</div>
+  <script>
+    const messages = document.getElementById("messages");
+    const input = document.getElementById("messageInput");
+    const form = document.getElementById("chatForm");
+    const sendBtn = document.getElementById("sendBtn");
+    const statusEl = document.getElementById("aiStatus");
 
-<!-- AUTH MODAL -->
-<div class="overlay" id="authOverlay">
-  <div class="modal">
-    <button class="close-btn" onclick="closeAuth()">×</button>
-    <div class="tabs">
-      <div class="tab on" id="tabLogin" onclick="switchTab('login')">Kirish</div>
-      <div class="tab" id="tabSignup" onclick="switchTab('signup')">Ro‘yxatdan o‘tish</div>
-    </div>
-    <div class="security-note">
-      ⚠️ Bu demo autentifikatsiya. Parollar faqat brauzerda saqlanadi. Haqiqiy xavfsizlik uchun server kerak.
-    </div>
-    <div id="loginForm">
-      <h2>Xush kelibsiz</h2>
-      <p>Hisobingizga kiring</p>
-      <div class="form-group">
-        <label>Email</label>
-        <input type="email" id="loginEmail" placeholder="email@example.com" autocomplete="username">
-      </div>
-      <div class="form-group">
-        <label>Parol</label>
-        <input type="password" id="loginPass" placeholder="Parolingiz" autocomplete="current-password">
-        <div class="error" id="loginError"></div>
-      </div>
-      <button class="submit-btn" onclick="doLogin()">Kirish</button>
-    </div>
-    <div id="signupForm" style="display:none">
-      <h2>Yangi hisob</h2>
-      <p>Xavfsiz ro‘yxatdan o‘ting</p>
-      <div class="form-group">
-        <label>Ismingiz</label>
-        <input type="text" id="suName" placeholder="Ismingiz" maxlength="40">
-      </div>
-      <div class="form-group">
-        <label>Email</label>
-        <input type="email" id="suEmail" placeholder="email@example.com" autocomplete="username">
-      </div>
-      <div class="form-group">
-        <label>Parol (kamida 6 belgi)</label>
-        <input type="password" id="suPass" placeholder="Parol" oninput="checkStrength(this.value)" autocomplete="new-password">
-        <div class="strength"><div class="strength-bar" id="strBar"></div></div>
-        <div class="strength-text" id="strText">Parol kuchi</div>
-        <div class="error" id="suError"></div>
-      </div>
-      <button class="submit-btn" onclick="doSignup()">Ro‘yxatdan o‘tish</button>
-    </div>
-    <div id="successMsg" style="display:none; text-align:center; padding:24px 0">
-      <div style="font-size:2.8rem; margin-bottom:8px">🎉</div>
-      <h2 style="color:var(--ok); margin-bottom:6px">Muvaffaqiyatli!</h2>
-      <p class="mu" id="successText"></p>
-    </div>
-  </div>
-</div>
+    let grade = 1;
+    let subject = "";
+    let busy = false;
 
-<script>
-const $ = s => document.querySelector(s);
-const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({
-  "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
-}[c]));
-
-const SUBJ = ["Matematika","Ona tili","Ingliz tili","Rus tili","Tabiiy fan","Tarix","Geografiya","Biologiya","Fizika","Kimyo","Informatika","Tasviriy san'at","Musiqa"];
-
-let S = { g:1, sj:"Matematika", stars:0, snd:true, topic:"", vn:"", rt:0.85, ch:"human" };
-try { S = Object.assign(S, JSON.parse(localStorage.getItem("bobo") || "{}")); } catch(e){}
-const sv = () => { try { localStorage.setItem("bobo", JSON.stringify(S)); } catch(e){} };
-
-let currentUser = null;
-try { currentUser = JSON.parse(localStorage.getItem("bobo_user") || "null"); } catch(e){}
-
-let AI = { provider: "groq", key: "", model: "" };
-try { AI = Object.assign(AI, JSON.parse(localStorage.getItem("bobo_ai") || "{}")); } catch(e){}
-
-const PROVIDERS = {
-  groq: { url: "https://api.groq.com/openai/v1/chat/completions", defaultModel: "llama-3.3-70b-versatile", hint: 'Groq bepul: <a href="https://console.groq.com/keys" target="_blank" rel="noopener">console.groq.com</a>' },
-  openai: { url: "https://api.openai.com/v1/chat/completions", defaultModel: "gpt-4o-mini", hint: 'OpenAI: <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">platform.openai.com</a>' },
-  anthropic: { url: "https://api.anthropic.com/v1/messages", defaultModel: "claude-3-5-haiku-20241022", hint: 'Anthropic: <a href="https://console.anthropic.com/" target="_blank" rel="noopener">console.anthropic.com</a>' },
-  gemini: { url: "https://generativelanguage.googleapis.com/v1beta/models/", defaultModel: "gemini-2.0-flash", hint: 'Gemini: <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com</a>' },
-  openrouter: { url: "https://openrouter.ai/api/v1/chat/completions", defaultModel: "meta-llama/llama-3.3-70b-instruct", hint: 'OpenRouter: <a href="https://openrouter.ai/keys" target="_blank" rel="noopener">openrouter.ai</a>' }
-};
-
-/* SIDEBAR */
-function toggleSidebar() {
-  $("#sidebar").classList.toggle("open");
-}
-function setPage(page) {
-  document.querySelectorAll(".sb-item").forEach(el => el.classList.remove("active"));
-  if (event?.currentTarget) event.currentTarget.classList.add("active");
-  if (window.innerWidth <= 768) $("#sidebar").classList.remove("open");
-}
-
-/* AI */
-function updateProviderHint() {
-  const p = $("#aiProvider").value;
-  $("#providerHint").innerHTML = PROVIDERS[p]?.hint || "";
-}
-function openAISettings() {
-  $("#aiProvider").value = AI.provider || "groq";
-  $("#aiKey").value = AI.key || "";
-  $("#aiModel").value = AI.model || "";
-  updateProviderHint();
-  $("#aiTestResult").textContent = "";
-  $("#aiOverlay").classList.add("active");
-  if (window.innerWidth <= 768) $("#sidebar").classList.remove("open");
-}
-function closeAISettings() { $("#aiOverlay").classList.remove("active"); }
-function saveAISettings() {
-  AI.provider = $("#aiProvider").value;
-  AI.key = $("#aiKey").value.trim();
-  AI.model = $("#aiModel").value.trim().slice(0, 80);
-  try { localStorage.setItem("bobo_ai", JSON.stringify(AI)); } catch(e){}
-  updateAIStatus();
-  closeAISettings();
-  alert("AI sozlamalari saqlandi!");
-}
-async function testAI() {
-  const res = $("#aiTestResult");
-  res.textContent = "Sinov…";
-  try {
-    const t = await callAI("Salom de va o‘zingni qisqa tanishtir (1 gap).", false);
-    res.innerHTML = `<span style="color:var(--ok)">✅ Ishlayapti!</span><br><small>${esc(t.slice(0,120))}…</small>`;
-  } catch(e) {
-    res.innerHTML = `<span style="color:var(--er)">❌ ${esc(e.message || e)}</span>`;
-  }
-}
-function updateAIStatus() {
-  const el = $("#aiStatus");
-  if (AI.key) {
-    el.textContent = "AI ✓";
-    el.className = "ai-status ok";
-  } else {
-    el.textContent = "AI yo‘q";
-    el.className = "ai-status no";
-  }
-}
-
-
-async function callAI(prompt, jsonMode = false) {
-  const response = await fetch("/api/chat", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      prompt: prompt,
-      jsonMode: jsonMode
-    })
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || "AI xatosi");
-  }
-
-  return jsonMode
-    ? JSON.parse(data.text)
-    : data.text;
-}
-
-  // Timeout + basic rate protection
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 25000);
-
-  try {
-    if (AI.provider === "gemini") {
-      const url = `${p.url}${model}:generateContent?key=${encodeURIComponent(AI.key)}`;
-      const body = { contents: [{ parts: [{ text: prompt }] }], generationConfig: jsonMode ? { responseMimeType: "application/json" } : {} };
-      const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: controller.signal });
-      if (!r.ok) throw new Error("Gemini xato: " + r.status);
-      const data = await r.json();
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-      return jsonMode ? JSON.parse(text) : text;
+    function addMessage(text, type = "") {
+      const el = document.createElement("div");
+      el.className = "bubble" + (type ? " " + type : "");
+      el.textContent = text;
+      messages.appendChild(el);
+      messages.scrollTop = messages.scrollHeight;
+      return el;
     }
-    if (AI.provider === "anthropic") {
-      const r = await fetch(p.url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-api-key": AI.key, "anthropic-version": "2023-06-01" },
-        body: JSON.stringify({ model, max_tokens: 1024, messages: [{ role: "user", content: prompt }] }),
-        signal: controller.signal
+
+    async function checkAI() {
+      try {
+        const response = await fetch("/api/health");
+        const data = await response.json();
+
+        if (response.ok && data.configured) {
+          statusEl.textContent = "● AI tayyor";
+          statusEl.className = "status ok";
+        } else {
+          statusEl.textContent = "AI sozlanmagan";
+          statusEl.className = "status";
+        }
+      } catch {
+        statusEl.textContent = "Server bilan aloqa yo‘q";
+        statusEl.className = "status";
+      }
+    }
+
+    async function askAI(question) {
+      if (busy) return;
+      busy = true;
+      sendBtn.disabled = true;
+
+      const waiting = addMessage("Bobo o‘ylayapti…");
+
+      try {
+        const prompt =
+          "Sen Bobo, o‘zbek tilida gapiradigan, 1–6-sinf bolalariga mos AI o‘qituvchisan. " +
+          "Tanlangan sinf: " + grade + "-sinf. " +
+          (subject ? "Fan: " + subject + ". " : "") +
+          "Javobni sodda, muloyim va tushunarli yoz. Savol: " + question;
+
+        const response = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt: prompt, jsonMode: false })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Serverda xato yuz berdi.");
+        }
+
+        waiting.textContent = data.text || "Hozir javob tayyorlay olmadim.";
+      } catch (error) {
+        waiting.className = "bubble error";
+        waiting.textContent =
+          "Xatolik: " + error.message +
+          "\nRailway serveri, API kaliti va Logs bo‘limini tekshiring.";
+      } finally {
+        busy = false;
+        sendBtn.disabled = false;
+        input.focus();
+        messages.scrollTop = messages.scrollHeight;
+      }
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const question = input.value.trim();
+
+      if (!question || busy) return;
+
+      addMessage(question, "user");
+      input.value = "";
+      await askAI(question);
+    });
+
+    document.querySelectorAll("[data-prompt]").forEach(button => {
+      button.addEventListener("click", () => {
+        const prompt = button.dataset.prompt;
+        addMessage(prompt, "user");
+        askAI(prompt);
       });
-      if (!r.ok) throw new Error("Anthropic xato: " + r.status);
-      const data = await r.json();
-      const text = data.content?.[0]?.text || "";
-      return jsonMode ? JSON.parse(text) : text;
-    }
-    const body = {
-      model,
-      messages: [
-        { role: "system", content: "Siz Bobo — o‘zbek tilida gapiradigan, bolalar uchun sodda va do‘stona AI o‘qituvchisiz. Zararli, zo‘ravonlik yoki yoshga mos bo‘lmagan kontent bermang." },
-        { role: "user", content: prompt }
-      ],
-      temperature: 0.7,
-      max_tokens: 1024
-    };
-    if (jsonMode) body.response_format = { type: "json_object" };
-    const r = await fetch(p.url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + AI.key },
-      body: JSON.stringify(body),
-      signal: controller.signal
     });
-    if (!r.ok) throw new Error((AI.provider || "API") + " xato: " + r.status);
-    const data = await r.json();
-    const text = data.choices?.[0]?.message?.content || "";
-    return jsonMode ? JSON.parse(text) : text;
-  } finally {
-    clearTimeout(timeoutId);
-  }
-}
-async function aiT(prompt) {
-  return await callAI(prompt, false);
-}
-async function aiJ(prompt) {
-  try {
-    return await callAI(prompt + "\n\nFaqat toza JSON qaytar.", true);
-  } catch(e) {
-    const t = await callAI(prompt + "\n\nFaqat JSON massiv yoki obyekt qaytar.", false);
-    const m = t.match(/\[[\s\S]*\]|\{[\s\S]*\}/);
-    if (m) return JSON.parse(m[0]);
-    throw e;
-  }
-}
 
-/* THEME */
-function toggleTheme() {
-  const html = document.documentElement;
-  const next = html.getAttribute("data-theme") === "dark" ? "light" : "dark";
-  html.setAttribute("data-theme", next);
-  $("#themeIcon").textContent = next === "dark" ? "☀️" : "🌙";
-  localStorage.setItem("bobo_theme", next);
-}
-(function() {
-  const t = localStorage.getItem("bobo_theme") || (matchMedia("(prefers-color-scheme:dark)").matches ? "dark" : "light");
-  document.documentElement.setAttribute("data-theme", t);
-  $("#themeIcon").textContent = t === "dark" ? "☀️" : "🌙";
-})();
-
-/* AUTH — DEMO ONLY (client-side) */
-function simpleHash(str) {
-  // Still weak — only for demo. Real apps need server + bcrypt/argon2.
-  let h = 2166136261;
-  for (let i = 0; i < str.length; i++) {
-    h ^= str.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return "h" + (h >>> 0).toString(36) + str.length;
-}
-function openAuth() {
-  if (currentUser) {
-    if (confirm(currentUser.name + ", chiqib ketmoqchimisiz?")) {
-      currentUser = null;
-      localStorage.removeItem("bobo_user");
-      updateAuthUI();
-    }
-    return;
-  }
-  $("#authOverlay").classList.add("active");
-  switchTab("login");
-  if (window.innerWidth <= 768) $("#sidebar").classList.remove("open");
-}
-function closeAuth() { $("#authOverlay").classList.remove("active"); }
-function switchTab(t) {
-  $("#tabLogin").classList.toggle("on", t === "login");
-  $("#tabSignup").classList.toggle("on", t === "signup");
-  $("#loginForm").style.display = t === "login" ? "block" : "none";
-  $("#signupForm").style.display = t === "signup" ? "block" : "none";
-  $("#successMsg").style.display = "none";
-  $("#loginError").style.display = "none";
-  $("#suError").style.display = "none";
-}
-function checkStrength(p) {
-  let score = 0;
-  if (p.length >= 6) score++;
-  if (p.length >= 8) score++;
-  if (/[A-Z]/.test(p)) score++;
-  if (/[0-9]/.test(p)) score++;
-  if (/[^A-Za-z0-9]/.test(p)) score++;
-  const bar = $("#strBar"), txt = $("#strText");
-  const colors = ["#ef4444","#f97316","#eab308","#84cc16","#22c55e"];
-  const labels = ["Juda zaif","Zaif","O‘rtacha","Yaxshi","Kuchli"];
-  bar.style.width = (score * 20) + "%";
-  bar.style.background = colors[score-1] || "transparent";
-  txt.textContent = p ? (labels[score-1] || "Parol kuchi") : "Parol kuchi";
-}
-function doSignup() {
-  const name = $("#suName").value.trim().slice(0, 40);
-  const email = $("#suEmail").value.trim().toLowerCase().slice(0, 100);
-  const pass = $("#suPass").value;
-  const err = $("#suError");
-  err.style.display = "none";
-  if (!name || name.length < 2) { err.textContent = "Ism kamida 2 belgi"; err.style.display = "block"; return; }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { err.textContent = "Email noto‘g‘ri"; err.style.display = "block"; return; }
-  if (pass.length < 6) { err.textContent = "Parol kamida 6 belgi"; err.style.display = "block"; return; }
-  let users = {};
-  try { users = JSON.parse(localStorage.getItem("bobo_users") || "{}"); } catch(e){}
-  if (users[email]) { err.textContent = "Bu email allaqachon bor"; err.style.display = "block"; return; }
-  users[email] = { name, hash: simpleHash(pass + email + "bobo_salt_2024"), stars: 0, created: Date.now() };
-  try { localStorage.setItem("bobo_users", JSON.stringify(users)); } catch(e){}
-  currentUser = { email, name };
-  localStorage.setItem("bobo_user", JSON.stringify(currentUser));
-  S.stars = 0; sv();
-  $("#loginForm").style.display = "none";
-  $("#signupForm").style.display = "none";
-  $("#successMsg").style.display = "block";
-  $("#successText").textContent = name + ", muvaffaqiyatli!";
-  updateAuthUI();
-  setTimeout(closeAuth, 1800);
-  confettiBurst();
-}
-function doLogin() {
-  const email = $("#loginEmail").value.trim().toLowerCase();
-  const pass = $("#loginPass").value;
-  const err = $("#loginError");
-  err.style.display = "none";
-  let users = {};
-  try { users = JSON.parse(localStorage.getItem("bobo_users") || "{}"); } catch(e){}
-  const u = users[email];
-  if (!u || u.hash !== simpleHash(pass + email + "bobo_salt_2024")) {
-    err.textContent = "Email yoki parol noto‘g‘ri";
-    err.style.display = "block";
-    return;
-  }
-  currentUser = { email, name: u.name };
-  localStorage.setItem("bobo_user", JSON.stringify(currentUser));
-  S.stars = u.stars || 0; sv();
-  $("#loginForm").style.display = "none";
-  $("#signupForm").style.display = "none";
-  $("#successMsg").style.display = "block";
-  $("#successText").textContent = "Xush kelibsiz, " + u.name + "!";
-  updateAuthUI();
-  setTimeout(closeAuth, 1500);
-}
-function updateAuthUI() {
-  if (currentUser) {
-    $("#sbAvatar").textContent = (currentUser.name[0] || "?").toUpperCase();
-    $("#sbName").textContent = currentUser.name;
-    $("#sbEmail").textContent = currentUser.email;
-  } else {
-    $("#sbAvatar").textContent = "?";
-    $("#sbName").textContent = "Mehmon";
-    $("#sbEmail").textContent = "Kirish / Ro‘yxat";
-  }
-  hdr();
-}
-function requireAuth() {
-  if (!currentUser) {
-    alert("O‘yin uchun avval kiring!");
-    openAuth();
-    return false;
-  }
-  return true;
-}
-
-/* VOICE */
-const VL = () => window.speechSynthesis ? speechSynthesis.getVoices() : [];
-function bestVoice() {
-  const vs = VL();
-  if (S.vn) { const f = vs.find(v => v.name === S.vn); if (f && /^uz/i.test(f.lang)) return f; }
-  return vs.filter(v => /^uz/i.test(v.lang)).sort((a,b) => /natural|online|google/i.test(b.name) - /natural|online|google/i.test(a.name))[0]
-    || vs.find(v => /^tr/i.test(v.lang) && /google|premium|enhanced|natural|neural/i.test(v.name))
-    || vs.find(v => /^tr/i.test(v.lang)) || vs.find(v => /^ru/i.test(v.lang)) || vs[0] || null;
-}
-function toTR(t) {
-  return t.replace(/o[ʻ'’`‘]/gi,"o").replace(/g[ʻ'’`‘]/gi,"g").replace(/[ʻ'’`‘]/g,"")
-    .replace(/sh/gi,"ş").replace(/ch/gi,"ç").replace(/j/gi,"c").replace(/x/gi,"h").replace(/q/gi,"k");
-}
-function speak(t) {
-  if (!S.snd || !window.speechSynthesis) return;
-  speechSynthesis.cancel();
-  const v = bestVoice(), tk = !!v && /^tr/i.test(v.lang);
-  const clean = String(t).replace(/[\u{1F300}-\u{1FAFF}\u2600-\u27BF]/gu,"").replace(/___/g," nuqta nuqta ").replace(/\s+/g," ").trim();
-  const parts = clean.match(/[^.!?…:;]+[.!?…:;]?/g) || [clean];
-  const ST = { human:[1,0], bobo:[1.1,0], fun:[1.3,.1], story:[.95,-.08], robot:[.6,-.05], mouse:[1.8,.05] };
-  parts.forEach(p => {
-    p = p.trim(); if (!p) return;
-    const [pb, ra] = ST[S.ch || "human"];
-    const q = /\?\s*$/.test(p), e = /!\s*$/.test(p);
-    const j = (S.ch === "robot" || (S.ch || "human") === "human") ? 0 : (Math.random() - .5) * .2;
-    const u = new SpeechSynthesisUtterance(tk ? toTR(p) : p);
-    if (v) { u.voice = v; u.lang = v.lang; } else u.lang = "uz-UZ";
-    u.rate = Math.min(1.4, Math.max(.4, (S.rt || .85) * (1 + ra + (e ? .08 : 0) - (q ? .03 : 0))));
-    u.pitch = Math.min(2, Math.max(.1, pb + j + ((q ? .2 : 0) + (e ? .15 : 0)) * ((S.ch || "human") === "human" ? .3 : 1)));
-    speechSynthesis.speak(u);
-  });
-}
-
-function hdr() {
-  $("#st").textContent = "⭐ " + S.stars;
-  $("#sn").textContent = S.snd ? "🔊" : "🔇";
-  $("#gr").innerHTML = [1,2,3,4,5,6].map(g =>
-    `<span class="ch ${S.g===g?"on":""}" onclick="S.g=${g};sv();hdr()">${g}-sinf</span>`).join("");
-  $("#sj").innerHTML = SUBJ.map(s =>
-    `<span class="ch ${S.sj===s?"on":""}" onclick="S.sj='${s.replace(/'/g,"\\'")}';sv();hdr()">${esc(s)}</span>`).join("");
-}
-
-async function topics() {
-  $("#tc").innerHTML = `<div class="mu">🦉 O‘ylayapman…</div>`;
-  try {
-    const r = await aiJ(`${S.g}-sinf o'quvchisi uchun "${S.sj}" fanidan dasturga mos 8 ta qiziqarli mavzu nomi. Faqat JSON massiv: ["mavzu1","mavzu2",...]. O'zbek tilida.`);
-    window.TP = (Array.isArray(r) ? r : (r.topics || Object.values(r)[0] || [])).slice(0,8).map(t => String(t).slice(0,80));
-    $("#tc").innerHTML = "";
-    TP.forEach((t,i) => {
-      const span = document.createElement("span");
-      span.className = "ch";
-      span.textContent = t;
-      span.onclick = () => pickTopic(TP[i]);
-      $("#tc").appendChild(span);
+    document.querySelectorAll("[data-subject]").forEach(button => {
+      button.addEventListener("click", () => {
+        subject = button.dataset.subject;
+        input.value = subject + " fanidan " + grade + "-sinfga mos mavzuni tushuntir.";
+        input.focus();
+      });
     });
-  } catch(e) {
-    $("#tc").innerHTML = `<div class="mu">AI xato: ${esc(e.message || e)}</div>`;
-  }
-}
 
-function pickTopic(t) {
-  t = String(t || "").trim().slice(0, 120);
-  if (!t) return $("#tp").focus();
-  S.topic = t; sv();
-  $("#tp").value = t;
-  $("#tc").innerHTML = "";
-  if (speechSynthesis) speechSynthesis.cancel();
-  saveChatHistory(t);
+    document.querySelectorAll("[data-grade]").forEach(button => {
+      button.addEventListener("click", () => {
+        grade = Number(button.dataset.grade);
 
-  const body = $("#body");
-  body.innerHTML = "";
-
-  // Card 1
-  const card1 = document.createElement("div");
-  card1.className = "card";
-  card1.innerHTML = `
-    <h2>📖 ${esc(t)}</h2>
-    <div id="ls" class="mu" style="margin-top:6px">Darsni boshlaymizmi?</div>
-    <div style="margin-top:14px; display:flex; gap:8px; flex-wrap:wrap">
-      <button class="btn" id="btnLesson">📖 Bobo tushuntirsin</button>
-      <button class="btn s" id="btnSpeak">🔊 Qayta eshit</button>
-    </div>`;
-  body.appendChild(card1);
-  $("#btnLesson").onclick = lesson;
-  $("#btnSpeak").onclick = () => speak(lessonText || "");
-
-  // Card 2
-  const card2 = document.createElement("div");
-  card2.className = "card";
-  card2.innerHTML = `
-    <h2>❓ Bobo'dan so‘ra</h2>
-    <div class="row" style="margin-top:10px">
-      <input id="as" placeholder="Savolingni yoz…" maxlength="300">
-      <button class="btn" id="btnAsk">➤</button>
-    </div>
-    <div id="an" style="white-space:pre-wrap;margin-top:12px"></div>`;
-  body.appendChild(card2);
-  $("#as").onkeydown = e => { if (e.key === "Enter") ask(); };
-  $("#btnAsk").onclick = ask;
-
-  // Card 3
-  const card3 = document.createElement("div");
-  card3.className = "card";
-  card3.innerHTML = `<h2>🎮 O‘yin tanla</h2><div class="gg" style="margin-top:12px" id="gameBtns"></div>`;
-  body.appendChild(card3);
-  const games = [["quiz","🎯 Savol-javob"],["tf","✅ To‘g‘ri/Xato"],["fill","🧩 Bo‘shliqni to‘ldir"],
-                 ["order","🔢 Tartibga sol"],["match","🔗 Juftini top"],["memory","🃏 Xotira kartalari"]];
-  games.forEach(([k,n]) => {
-    const b = document.createElement("button");
-    b.className = "btn";
-    b.textContent = n;
-    b.onclick = () => game(k);
-    $("#gameBtns").appendChild(b);
-  });
-
-  const gm = document.createElement("div");
-  gm.id = "gm";
-  body.appendChild(gm);
-}
-
-function saveChatHistory(topic) {
-  let hist = [];
-  try { hist = JSON.parse(localStorage.getItem("bobo_history") || "[]"); } catch(e){}
-  hist = hist.filter(h => h !== topic);
-  hist.unshift(topic.slice(0, 80));
-  hist = hist.slice(0, 12);
-  try { localStorage.setItem("bobo_history", JSON.stringify(hist)); } catch(e){}
-  renderHistory();
-}
-function renderHistory() {
-  let hist = [];
-  try { hist = JSON.parse(localStorage.getItem("bobo_history") || "[]"); } catch(e){}
-  const el = $("#chatHistory");
-  el.innerHTML = "";
-  if (!hist.length) {
-    el.innerHTML = `<div class="mu" style="padding:8px 12px;font-size:.85rem">Hali suhbat yo‘q</div>`;
-    return;
-  }
-  hist.forEach(t => {
-    const div = document.createElement("div");
-    div.className = "sb-chat";
-    div.textContent = t;
-    div.onclick = () => pickTopic(t);
-    el.appendChild(div);
-  });
-}
-
-async function lesson() {
-  const el = $("#ls");
-  el.className = ""; el.textContent = "…";
-  try {
-    lessonText = await aiT(`Siz Bobo boyqushsiz, ${S.g}-sinf bolasi uchun "${S.sj}" fanidan "${S.topic}" mavzusini qisqa ertak yoki hayotiy misol orqali juda sodda tushuntiring (100 so'zdan oshmasin). Oxirida bitta mini savol bering. O'zbek tilida.`);
-    el.textContent = lessonText;
-    speak(lessonText);
-  } catch(e) {
-    el.textContent = "AI xato: " + (e.message || e);
-  }
-}
-
-async function ask() {
-  const q = ($("#as").value || "").trim().slice(0, 300);
-  if (!q) return;
-  $("#an").textContent = "…";
-  try {
-    const t = await aiT(`Siz Bobo boyqushsiz, ${S.g}-sinf bolasiga ${S.sj} fanidan (mavzu: ${S.topic}) javob bering: "${q}". Juda sodda, qisqa, do'stona, o'zbek tilida.`);
-    $("#an").textContent = t;
-    speak(t);
-  } catch(e) {
-    $("#an").textContent = "AI xato: " + (e.message || e);
-  }
-}
-
-/* GAMES */
-const GP = {
-  quiz: [5,'[{"q":"savol","o":["A","B","C","D"],"a":0}]',"4 variantli test savoli"],
-  tf: [6,'[{"s":"gap","t":true}]',"to'g'ri yoki noto'g'ri gap"],
-  fill: [5,'[{"s":"Gap ___ shu yerda","o":["x","y","z"],"a":0}]',"bo'sh joyli gap"],
-  order: [4,'[{"q":"Tartiblang","items":["1","2","3"]}]',"tartib"],
-  match: [5,'[{"a":"so\'z","b":"juft"}]',"juftliklar"],
-  memory: [5,'[{"a":"so\'z","b":"juft"}]',"juftliklar"]
-};
-const sh = a => a.map(x => [Math.random(), x]).sort((p,q) => p[0]-q[0]).map(x => x[1]);
-let G = null, lessonText = "";
-
-async function game(k) {
-  if (!requireAuth()) return;
-  const [n, f, d] = GP[k];
-  $("#gm").innerHTML = `<div class="card big">🦉<div class="mu" style="font-size:1rem;margin-top:8px">O‘yin tayyorlanmoqda…</div></div>`;
-  try {
-    const r = await aiJ(`${S.g}-sinf bolasi uchun "${S.sj}" fanidan "${S.topic}" mavzusida ${n} ta ${d} tuzing. Faqat JSON massiv: ${f}. O'zbek tilida.`);
-    const it = (Array.isArray(r) ? r : (r.questions || r.items || Object.values(r)[0] || [])).slice(0, n);
-    if (!it.length) throw new Error("Bo‘sh");
-    G = { k, it, i:0, sc:0, bad:0, sel:null, seq:[] };
-    k === "match" ? mtch() : k === "memory" ? mem() : seq();
-  } catch(e) {
-    $("#gm").innerHTML = `<div class="card">AI xato: ${esc(e.message || e)}</div>`;
-  }
-}
-function seq() {
-  if (G.i >= G.it.length) return end(G.sc, G.it.length);
-  const x = G.it[G.i], k = G.k;
-  let h = ""; G.seq = [];
-  const hd = `<div class="mu" style="margin-bottom:6px">${G.i+1}/${G.it.length}</div>`;
-  if (k === "quiz") {
-    h = `${hd}<h2 style="font-size:1.2rem;margin-bottom:10px">${esc(x.q)}</h2>` + (x.o||[]).map((o,j) => `<button class="opt" data-ok="${j===x.a}">${esc(o)}</button>`).join("");
-    speak(x.q);
-  }
-  if (k === "tf") {
-    h = `${hd}<h2 style="font-size:1.2rem;margin-bottom:10px">${esc(x.s)}</h2><div class="two">
-      <button class="opt" data-ok="${x.t===true}">✅ To‘g‘ri</button>
-      <button class="opt" data-ok="${x.t!==true}">❌ Noto‘g‘ri</button></div>`;
-    speak(x.s);
-  }
-  if (k === "fill") {
-    h = `${hd}<h2 style="font-size:1.2rem;margin-bottom:10px">${esc(x.s)}</h2>` + (x.o||[]).map((o,j) => `<button class="opt" data-ok="${j===x.a}">${esc(o)}</button>`).join("");
-    speak((x.s||"").replace("___","nuqta nuqta"));
-  }
-  if (k === "order") {
-    G.sh = sh(x.items || []);
-    h = `${hd}<h2 style="font-size:1.2rem;margin-bottom:10px">${esc(x.q)}</h2><div id="bd" class="mu">Tanlaganing: —</div>
-      <div id="oc">${G.sh.map((o,j) => `<button class="opt" style="display:inline-block;width:auto;margin:4px" data-j="${j}">${esc(o)}</button>`).join("")}</div>`;
-    speak(x.q);
-  }
-  $("#gm").innerHTML = `<div class="card">${h}<div id="fb"></div></div>`;
-  // Bind events safely
-  $("#gm").querySelectorAll(".opt[data-ok]").forEach(btn => {
-    btn.onclick = () => ans(btn.dataset.ok === "true", btn);
-  });
-  $("#gm").querySelectorAll(".opt[data-j]").forEach(btn => {
-    btn.onclick = () => ordPick(+btn.dataset.j, btn);
-  });
-}
-function ans(ok, b) {
-  if (G.lock) return;
-  G.lock = 1;
-  b.classList.add(ok ? "ok" : "no");
-  if (ok) G.sc++;
-  fb(ok);
-}
-function fb(ok) {
-  G.lock = 1;
-  $("#fb").innerHTML = `<p class="${ok?"pop":""}" style="margin:12px 0 8px"><b>${ok?"🎉 Barakalla!":"🙈 Hechqisi yo‘q!"}</b></p>
-    <button class="btn" id="nextBtn">Keyingisi ➜</button>`;
-  $("#nextBtn").onclick = () => { G.i++; G.lock=0; seq(); };
-  speak(ok ? "Barakalla!" : "Hechqisi yo‘q!");
-}
-function ordPick(j, b) {
-  if (G.lock || b.disabled) return;
-  b.disabled = true; b.style.opacity = .4;
-  G.seq.push(G.sh[j]);
-  $("#bd").textContent = "Tanlaganing: " + G.seq.join(" → ");
-  if (G.seq.length === (G.it[G.i].items || []).length) {
-    const ok = G.seq.every((v,i) => v === G.it[G.i].items[i]);
-    if (ok) G.sc++;
-    fb(ok);
-  }
-}
-function mtch() {
-  G.L = sh(G.it.map((x,i) => [x.a, i]));
-  G.R = sh(G.it.map((x,i) => [x.b, i]));
-  G.dn = {}; G.sel = null; G.bad = 0;
-  mdraw(); speak("Juftini top");
-}
-function mdraw() {
-  const c = (a,s) => a.map(([t,i]) =>
-    `<button class="opt ${G.dn[i]?"ok":G.sel&&G.sel.s===s&&G.sel.i===i?"sel":""}" data-s="${s}" data-i="${i}">${esc(t)}</button>`).join("");
-  $("#gm").innerHTML = `<div class="card"><h2 style="margin-bottom:12px">🔗 Juftini top</h2><div class="two"><div>${c(G.L,"L")}</div><div>${c(G.R,"R")}</div></div></div>`;
-  $("#gm").querySelectorAll(".opt").forEach(btn => {
-    btn.onclick = () => mpick(btn.dataset.s, +btn.dataset.i);
-  });
-}
-function mpick(s, i) {
-  if (G.dn[i]) return;
-  if (!G.sel || G.sel.s === s) { G.sel = {s,i}; return mdraw(); }
-  if (G.sel.i === i) {
-    G.dn[i] = 1; G.sel = null; mdraw(); speak("To‘g‘ri!");
-    if (Object.keys(G.dn).length === G.it.length) setTimeout(() => end(Math.max(0, G.it.length - G.bad), G.it.length), 500);
-  } else { G.bad++; G.sel = null; mdraw(); speak("Yana urin"); }
-}
-function mem() {
-  G.c = sh(G.it.flatMap((x,i) => [{t:x.a,i,u:0,d:0},{t:x.b,i,u:0,d:0}]));
-  G.o = []; G.mv = 0;
-  mrender(); speak("Juftlarini top");
-}
-function mrender() {
-  $("#gm").innerHTML = `<div class="card"><h2 style="margin-bottom:12px">🃏 Xotira kartalari</h2>
-    <div class="mem">${G.c.map((c,j) =>
-      `<button class="${c.d?"done":c.u?"up":""}" data-j="${j}">${c.u||c.d?esc(c.t):"❓"}</button>`).join("")}</div></div>`;
-  $("#gm").querySelectorAll("button[data-j]").forEach(btn => {
-    btn.onclick = () => flip(+btn.dataset.j);
-  });
-}
-function flip(j) {
-  const c = G.c[j];
-  if (c.u || c.d || G.o.length >= 2) return;
-  c.u = 1; G.o.push(j); mrender();
-  if (G.o.length === 2) {
-    G.mv++;
-    const [a,b] = G.o.map(x => G.c[x]);
-    setTimeout(() => {
-      if (a.i === b.i) { a.d = b.d = 1; speak("Ofarin!"); }
-      a.u = b.u = 0; G.o = []; mrender();
-      if (G.c.every(x => x.d)) end(Math.max(1, G.it.length * 2 - G.mv + G.it.length) > G.it.length ? G.it.length : Math.max(1, G.it.length - (G.mv - G.it.length)), G.it.length);
-    }, 800);
-  }
-}
-function end(sc, n) {
-  const p = sc / n, st = p >= .8 ? 3 : p >= .5 ? 2 : 1;
-  S.stars += st; sv();
-  if (currentUser) {
-    let users = {};
-    try { users = JSON.parse(localStorage.getItem("bobo_users") || "{}"); } catch(e){}
-    if (users[currentUser.email]) {
-      users[currentUser.email].stars = S.stars;
-      try { localStorage.setItem("bobo_users", JSON.stringify(users)); } catch(e){}
-    }
-  }
-  hdr();
-  $("#gm").innerHTML = `<div class="card" style="text-align:center">
-    <div class="big pop">🏆</div>
-    <div class="big" style="margin:8px 0">${"⭐".repeat(st)}</div>
-    <h2 style="margin-bottom:16px">Ofarin, ${st} ta yulduz!</h2>
-    <div style="display:flex; gap:8px; justify-content:center">
-      <button class="btn" id="againBtn">🔁 Yana</button>
-      <button class="btn s" id="otherBtn">Boshqa o‘yin</button>
-    </div>
-  </div>`;
-  $("#againBtn").onclick = () => game(G.k);
-  $("#otherBtn").onclick = () => { $("#gm").innerHTML = ""; };
-  speak("Ofarin! Sen zo‘rsan!");
-  confettiBurst();
-}
-
-function confettiBurst() {
-  const canvas = $("#confetti");
-  const ctx = canvas.getContext("2d");
-  canvas.width = innerWidth; canvas.height = innerHeight;
-  const pieces = Array.from({length: 70}, () => ({
-    x: Math.random() * canvas.width, y: -20 - Math.random() * 80,
-    r: 4 + Math.random() * 5,
-    c: ["#C45C26","#E07A3D","#F97316","#FBBF24","#22C55E","#3B82F6"][Math.floor(Math.random()*6)],
-    vy: 2 + Math.random() * 3.5, vx: (Math.random() - .5) * 3.5, rot: Math.random() * 360
-  }));
-  let frames = 0;
-  function draw() {
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    pieces.forEach(p => {
-      p.x += p.vx; p.y += p.vy; p.rot += 2.5;
-      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot * Math.PI / 180);
-      ctx.fillStyle = p.c; ctx.fillRect(-p.r/2, -p.r/2, p.r, p.r); ctx.restore();
+        document.querySelectorAll("[data-grade]").forEach(item => {
+          item.classList.toggle("selected", item === button);
+        });
+      });
     });
-    frames++;
-    if (frames < 85) requestAnimationFrame(draw);
-    else ctx.clearRect(0,0,canvas.width,canvas.height);
-  }
-  draw();
-}
 
-function fv() {
-  const vs = VL(), el = $("#vs");
-  if (!el) return;
-  const b = bestVoice();
-  el.innerHTML = vs.map(v => `<option value="${esc(v.name)}" ${b && b.name === v.name ? "selected" : ""}>${esc(v.name)} (${v.lang})</option>`).join("") || "<option>O‘zbek ovozi yo‘q</option>";
-  $("#rt").value = String(S.rt || 0.85);
-  $("#ch").value = S.ch || "human";
-  const vn = $("#vn");
-  if (vn) vn.innerHTML = b && /^uz/i.test(b.lang)
-    ? "✅ O‘zbek ovozi: " + esc(b.name)
-    : "⚠️ O‘zbek ovozi yo‘q";
-}
-if (window.speechSynthesis) speechSynthesis.onvoiceschanged = fv;
+    document.querySelectorAll(".nav[data-page]").forEach(button => {
+      button.addEventListener("click", () => {
+        document.querySelectorAll(".nav").forEach(item => {
+          item.classList.remove("active");
+        });
 
-/* INIT */
-hdr();
-fv();
-updateAuthUI();
-updateAIStatus();
-renderHistory();
-if (S.topic) pickTopic(S.topic);
-</script>
+        button.classList.add("active");
+        document.getElementById("pageTitle").textContent = button.dataset.page;
+
+        if (button.dataset.page === "Fanlar") {
+          document.getElementById("subjectsSection").scrollIntoView({
+            behavior: "smooth"
+          });
+        } else if (button.dataset.page === "O‘yinlar") {
+          document.querySelectorAll("section")[1].scrollIntoView({
+            behavior: "smooth"
+          });
+        } else if (button.dataset.page === "Topshiriqlar") {
+          input.value = "Menga " + grade + "-sinfga mos topshiriq ber.";
+          input.focus();
+        } else if (button.dataset.page === "Statistika") {
+          alert("Bu yangi versiyada statistika hali qo‘shilmagan.");
+        }
+      });
+    });
+
+    document.getElementById("settingsBtn").addEventListener("click", () => {
+      alert(
+        "API kaliti Railway serverida saqlanadi.\n\n" +
+        "Railway → servis → Variables → OPENAI_API_KEY"
+      );
+    });
+
+    document.getElementById("themeBtn").addEventListener("click", () => {
+      document.body.classList.toggle("dark");
+      document.getElementById("themeBtn").textContent =
+        document.body.classList.contains("dark") ? "☀️" : "🌙";
+    });
+
+    checkAI();
+  </script>
 </body>
 </html>
