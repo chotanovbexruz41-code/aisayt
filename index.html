@@ -267,6 +267,25 @@
       background: #ffead7;
     }
 
+    .bubble.assistant {
+      align-self: flex-start;
+    }
+
+    .chat-actions {
+      display: flex;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .chat-actions button {
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      background: transparent;
+      color: var(--text);
+      padding: 6px 9px;
+      font-size: 12px;
+    }
+
     .bubble.error {
       background: #ffeded;
       color: #a22222;
@@ -536,6 +555,9 @@
           <div class="chat-head">
             <strong>🤖 Bobo AI</strong>
             <span class="muted" style="font-size:13px">Savol ber yoki mavzu tanla</span>
+            <div class="chat-actions">
+              <button type="button" id="clearChatBtn">🗑️ Chatni tozalash</button>
+            </div>
           </div>
 
           <div class="messages" id="messages" aria-live="polite">
@@ -572,18 +594,60 @@
     const sendBtn = document.getElementById("sendBtn");
     const statusEl = document.getElementById("aiStatus");
 
-    let grade = 1;
-    let subject = "";
+    let grade = Number(localStorage.getItem("bobo_grade") || 1);
+    let subject = localStorage.getItem("bobo_subject") || "";
     let busy = false;
+    const CHAT_STORAGE_KEY = "bobo_chat_history";
+    let chatHistory = [];
 
-    function addMessage(text, type = "") {
+    try {
+      const saved = JSON.parse(localStorage.getItem(CHAT_STORAGE_KEY) || "[]");
+      chatHistory = Array.isArray(saved) ? saved : [];
+    } catch {
+      chatHistory = [];
+    }
+
+    function saveChatHistory() {
+      try {
+        localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(chatHistory));
+      } catch (error) {
+        console.warn("Chat tarixini saqlab bo‘lmadi:", error);
+      }
+    }
+
+    function addMessage(text, type = "", save = true) {
       const el = document.createElement("div");
       el.className = "bubble" + (type ? " " + type : "");
       el.textContent = text;
       messages.appendChild(el);
       messages.scrollTop = messages.scrollHeight;
+
+      if (save && (type === "user" || type === "assistant")) {
+        chatHistory.push({ text, type, time: new Date().toISOString() });
+        saveChatHistory();
+      }
       return el;
     }
+
+    function restoreChatHistory() {
+      if (chatHistory.length) {
+        messages.innerHTML = "";
+        chatHistory.forEach(item => {
+          if (item && typeof item.text === "string") {
+            addMessage(item.text, item.type === "user" ? "user" : "assistant", false);
+          }
+        });
+      }
+    }
+
+    document.getElementById("clearChatBtn").addEventListener("click", () => {
+      if (confirm("Saqlangan chatlar o‘chirilsinmi?")) {
+        chatHistory = [];
+        saveChatHistory();
+        messages.innerHTML = "";
+        addMessage("Salom! Men Bobo! 😊\nNima haqida gaplashamiz?", "", false);
+      }
+    });
 
     async function checkAI() {
       try {
@@ -630,6 +694,13 @@
         }
 
         waiting.textContent = data.text || "Hozir javob tayyorlay olmadim.";
+        waiting.className = "bubble assistant";
+        chatHistory.push({
+          text: waiting.textContent,
+          type: "assistant",
+          time: new Date().toISOString()
+        });
+        saveChatHistory();
       } catch (error) {
         waiting.className = "bubble error";
         waiting.textContent =
@@ -665,6 +736,7 @@
     document.querySelectorAll("[data-subject]").forEach(button => {
       button.addEventListener("click", () => {
         subject = button.dataset.subject;
+        localStorage.setItem("bobo_subject", subject);
         input.value = subject + " fanidan " + grade + "-sinfga mos mavzuni tushuntir.";
         input.focus();
       });
@@ -673,6 +745,7 @@
     document.querySelectorAll("[data-grade]").forEach(button => {
       button.addEventListener("click", () => {
         grade = Number(button.dataset.grade);
+        localStorage.setItem("bobo_grade", String(grade));
 
         document.querySelectorAll("[data-grade]").forEach(item => {
           item.classList.toggle("selected", item === button);
@@ -719,6 +792,10 @@
         document.body.classList.contains("dark") ? "☀️" : "🌙";
     });
 
+    document.querySelectorAll("[data-grade]").forEach(button => {
+      button.classList.toggle("selected", Number(button.dataset.grade) === grade);
+    });
+    restoreChatHistory();
     checkAI();
   </script>
 </body>
