@@ -13,7 +13,7 @@ app.get("/", (req, res) => {
 
 app.get("/api/health", (req, res) => {
   res.json({
-    configured: Boolean(process.env.OPENAI_API_KEY?.trim())
+    configured: Boolean(process.env.MISTRAL_API_KEY)
   });
 });
 
@@ -23,7 +23,7 @@ app.post("/api/chat", async (req, res) => {
 
     if (typeof prompt !== "string" || !prompt.trim()) {
       return res.status(400).json({
-        error: "Savol yuborilmadi."
+        error: "Savol yoki mavzu yuborilmadi."
       });
     }
 
@@ -33,27 +33,28 @@ app.post("/api/chat", async (req, res) => {
       });
     }
 
-    const apiKey = process.env.OPENAI_API_KEY?.trim();
-
-    if (!apiKey) {
+    if (!process.env.MISTRAL_API_KEY) {
       return res.status(503).json({
-        error: "Railway Variables bo‘limida OPENAI_API_KEY yo‘q."
+        error: "Railway'da MISTRAL_API_KEY sozlanmagan."
       });
     }
 
-    const client = new OpenAI({ apiKey });
+    const client = new OpenAI({
+      apiKey: process.env.MISTRAL_API_KEY,
+      baseURL: "https://api.mistral.ai/v1"
+    });
 
     const response = await client.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "mistral-small-latest",
       messages: [
         {
           role: "system",
           content:
-            "Sen Bobo, o‘zbek tilida gapiradigan, 1–6-sinf o‘quvchilariga mavzularni sodda va do‘stona tushuntiradigan AI o‘qituvchisan."
+            "Siz Bobo — o‘zbek tilida gapiradigan, 1–6-sinf o‘quvchilariga sodda va do‘stona tushuntiradigan AI o‘qituvchisiz. Javoblaringizni yoshga mos, tushunarli va foydali qiling. JSON so‘ralsa, faqat to‘g‘ri JSON qaytaring."
         },
         {
           role: "user",
-          content: prompt.trim()
+          content: prompt
         }
       ],
       temperature: 0.7,
@@ -63,33 +64,19 @@ app.post("/api/chat", async (req, res) => {
         : {})
     });
 
-    res.json({
-      text: response.choices?.[0]?.message?.content || "Javob olinmadi."
-    });
-  } catch (error) {
-    const status = error.status || 500;
+    const text =
+      response.choices?.[0]?.message?.content || "";
 
-    // Maxfiy API kalitini Logs'ga yozmaymiz.
-    console.error("OpenAI xatosi:", {
-      status,
-      code: error.code || "unknown",
+    res.json({ text });
+  } catch (error) {
+    console.error("Mistral API xatosi:", {
+      status: error.status,
+      code: error.code,
       message: error.message
     });
 
-    if (status === 401) {
-      return res.status(502).json({
-        error: "OpenAI API kaliti qabul qilinmadi. Kalit va loyiha sozlamalarini tekshiring."
-      });
-    }
-
-    if (status === 429) {
-      return res.status(502).json({
-        error: "OpenAI limiti yoki krediti bilan muammo bor. Billing va foydalanish limitini tekshiring."
-      });
-    }
-
     res.status(500).json({
-      error: "AI xizmatida xato yuz berdi. Railway Logs'ni tekshiring."
+      error: "AI javob bera olmadi. Railway Logs bo‘limini tekshiring."
     });
   }
 });
