@@ -7,30 +7,23 @@ const app = express();
 
 app.use(express.json({ limit: "20kb" }));
 
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
-
-// Bobo saytining index.html fayli asosiy papkada
 app.get("/", (req, res) => {
   res.sendFile(path.join(process.cwd(), "index.html"));
 });
 
-// Frontend serverda API kaliti borligini tekshiradi
 app.get("/api/health", (req, res) => {
   res.json({
-    configured: Boolean(process.env.OPENAI_API_KEY)
+    configured: Boolean(process.env.OPENAI_API_KEY?.trim())
   });
 });
 
-// AI so'rovlarini qayta ishlash
 app.post("/api/chat", async (req, res) => {
   try {
     const { prompt, jsonMode = false } = req.body || {};
 
     if (typeof prompt !== "string" || !prompt.trim()) {
       return res.status(400).json({
-        error: "Savol yoki mavzu yuborilmadi."
+        error: "Savol yuborilmadi."
       });
     }
 
@@ -40,11 +33,15 @@ app.post("/api/chat", async (req, res) => {
       });
     }
 
-    if (!process.env.OPENAI_API_KEY) {
+    const apiKey = process.env.OPENAI_API_KEY?.trim();
+
+    if (!apiKey) {
       return res.status(503).json({
-        error: "Railway'da OPENAI_API_KEY sozlanmagan."
+        error: "Railway Variables bo‘limida OPENAI_API_KEY yo‘q."
       });
     }
+
+    const client = new OpenAI({ apiKey });
 
     const response = await client.chat.completions.create({
       model: "gpt-4o-mini",
@@ -52,11 +49,11 @@ app.post("/api/chat", async (req, res) => {
         {
           role: "system",
           content:
-            "Siz Bobo — o‘zbek tilida gapiradigan, 1–6-sinf bolalariga sodda va do‘stona tushuntiradigan AI o‘qituvchisiz. Savollarga yoshga mos, tushunarli javob bering. JSON so‘ralsa, faqat to‘g‘ri JSON qaytaring."
+            "Sen Bobo, o‘zbek tilida gapiradigan, 1–6-sinf o‘quvchilariga mavzularni sodda va do‘stona tushuntiradigan AI o‘qituvchisan."
         },
         {
           role: "user",
-          content: prompt
+          content: prompt.trim()
         }
       ],
       temperature: 0.7,
@@ -66,15 +63,33 @@ app.post("/api/chat", async (req, res) => {
         : {})
     });
 
-    const text =
-      response.choices?.[0]?.message?.content || "";
-
-    res.json({ text });
+    res.json({
+      text: response.choices?.[0]?.message?.content || "Javob olinmadi."
+    });
   } catch (error) {
-    console.error("OpenAI xatosi:", error.message);
+    const status = error.status || 500;
+
+    // Maxfiy API kalitini Logs'ga yozmaymiz.
+    console.error("OpenAI xatosi:", {
+      status,
+      code: error.code || "unknown",
+      message: error.message
+    });
+
+    if (status === 401) {
+      return res.status(502).json({
+        error: "OpenAI API kaliti qabul qilinmadi. Kalit va loyiha sozlamalarini tekshiring."
+      });
+    }
+
+    if (status === 429) {
+      return res.status(502).json({
+        error: "OpenAI limiti yoki krediti bilan muammo bor. Billing va foydalanish limitini tekshiring."
+      });
+    }
 
     res.status(500).json({
-      error: "AI javob bera olmadi. Railway Logs bo‘limini tekshiring."
+      error: "AI xizmatida xato yuz berdi. Railway Logs'ni tekshiring."
     });
   }
 });
