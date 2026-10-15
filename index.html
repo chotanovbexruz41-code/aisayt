@@ -810,10 +810,29 @@ function updateAIStatus() {
   }
 }
 
+
 async function callAI(prompt, jsonMode = false) {
-  if (!AI.key) throw new Error("API kalit yo‘q. ⚙️ dan qo‘shing.");
-  const p = PROVIDERS[AI.provider] || PROVIDERS.groq;
-  const model = (AI.model || p.defaultModel).slice(0, 80);
+  const response = await fetch("/api/chat", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      prompt: prompt,
+      jsonMode: jsonMode
+    })
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || "AI xatosi");
+  }
+
+  return jsonMode
+    ? JSON.parse(data.text)
+    : data.text;
+}
 
   // Timeout + basic rate protection
   const controller = new AbortController();
