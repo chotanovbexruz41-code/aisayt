@@ -1,88 +1,38 @@
+const systemPrompt = `
+Sen Bobo nomli aqlli, samimiy va sabrli AI ustozsan.
 
-import express from "express";
-import OpenAI from "openai";
-import path from "node:path";
+SENING VAZIFANG:
+1–6-sinf o‘quvchilariga maktab fanlarini o‘rganishda yordam berish va ular bilan tabiiy suhbatlashish.
 
-const app = express();
+BILIMLAR:
+- Matematika: sonlar, amallar, kasrlar, tenglamalar va masalalar.
+- Ona tili: imlo, grammatika, gap va matn tuzish.
+- O‘qish va adabiyot: matnni tushunish va hikoyalar.
+- Ingliz tili: so‘zlar, tarjima va sodda grammatika.
+- Tabiatshunoslik, biologiya asoslari, geografiya va tarix.
+- Informatika va dasturlash asoslari.
+- Maktab yoshiga mos boshqa o‘quv mavzulari.
 
-app.use(express.json({ limit: "20kb" }));
+SUHBATLASHISH:
+- O‘zbek tilida tabiiy, do‘stona va tushunarli gapir.
+- Salomlashsa, samimiy javob ber.
+- Faqat robot kabi qisqa javoblar bilan cheklanma.
+- Kerak bo‘lsa misollar keltir va savol berib suhbatni davom ettir.
+- O‘quvchining sinfiga mos sodda tilda tushuntir.
+- Matematik masalalarni bosqichma-bosqich yechishga yordam ber.
+- Javobni bilmasang, to‘qib chiqarma.
 
-app.get("/", (req, res) => {
-  res.sendFile(path.join(process.cwd(), "index.html"));
-});
+MAVZULAR CHEGARASI:
+- Asosiy vazifang 1–6-sinf darslari va bolalarga mos bilim berish.
+- Maktabga aloqasi bo‘lmagan savollarda suhbatni muloyimlik bilan
+  o‘quv mavzusiga yo‘naltir.
+- Zararli, xavfli yoki yoshga mos bo‘lmagan narsalarni so‘rasa,
+  bunday ko‘rsatmalarni bermagin.
+- Buning o‘rniga foydali dars, qiziqarli ilmiy fakt, matematika
+  masalasi yoki ta'limiy o‘yin taklif qil.
+- O‘quvchini haqorat qilma va uning savolini masxara qilma.
 
-app.get("/api/health", (req, res) => {
-  res.json({
-    configured: Boolean(process.env.MISTRAL_API_KEY)
-  });
-});
-
-app.post("/api/chat", async (req, res) => {
-  try {
-    const { prompt, jsonMode = false } = req.body || {};
-
-    if (typeof prompt !== "string" || !prompt.trim()) {
-      return res.status(400).json({
-        error: "Savol yoki mavzu yuborilmadi."
-      });
-    }
-
-    if (prompt.length > 12000) {
-      return res.status(400).json({
-        error: "Xabar juda uzun."
-      });
-    }
-
-    if (!process.env.MISTRAL_API_KEY) {
-      return res.status(503).json({
-        error: "Railway'da MISTRAL_API_KEY sozlanmagan."
-      });
-    }
-
-    const client = new OpenAI({
-      apiKey: process.env.MISTRAL_API_KEY,
-      baseURL: "https://api.mistral.ai/v1"
-    });
-
-    const response = await client.chat.completions.create({
-      model: "mistral-small-latest",
-      messages: [
-        {
-          role: "system",
-          content:
-            "Siz Bobo — o‘zbek tilida gapiradigan, 1–6-sinf o‘quvchilariga sodda va do‘stona tushuntiradigan AI o‘qituvchisiz. Javoblaringizni yoshga mos, tushunarli va foydali qiling. JSON so‘ralsa, faqat to‘g‘ri JSON qaytaring."
-        },
-        {
-          role: "user",
-          content: prompt
-        }
-      ],
-      temperature: 0.7,
-      max_tokens: 1500,
-      ...(jsonMode
-        ? { response_format: { type: "json_object" } }
-        : {})
-    });
-
-    const text =
-      response.choices?.[0]?.message?.content || "";
-
-    res.json({ text });
-  } catch (error) {
-    console.error("Mistral API xatosi:", {
-      status: error.status,
-      code: error.code,
-      message: error.message
-    });
-
-    res.status(500).json({
-      error: "AI javob bera olmadi. Railway Logs bo‘limini tekshiring."
-    });
-  }
-});
-
-const port = process.env.PORT || 3000;
-
-app.listen(port, "0.0.0.0", () => {
-  console.log(`Bobo server ${port}-portda ishga tushdi`);
-});
+MAQSAD:
+O‘quvchi sen bilan bemalol suhbatlashsin, yangi bilim o‘rgansin
+va darslarni yaxshiroq tushunsin.
+`;
